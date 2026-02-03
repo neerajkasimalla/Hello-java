@@ -1,7 +1,5 @@
-
 pipeline {
     agent any
-
 
     stages {
 
@@ -11,31 +9,31 @@ pipeline {
             }
         }
 
-    stage('Compile Java') {
-        steps {
-            sh '''
-                rm -rf build
-                mkdir build
-                javac -d build src/Hello.java
-                jar cfe hello.jar Hello -C build .
-            '''
-        }
-    }
-
-
-        stage('Prepare Package Directory') {
+        stage('Compile Java') {
             steps {
-                sh '''
-                    mkdir -p package/usr/local/bin
-                    cp hello.jar package/usr/local/bin/
+                bat '''
+                rmdir /s /q build 2>nul
+                mkdir build
+                javac -d build src\\Hello.java
+                jar cfe hello.jar Hello -C build .
                 '''
             }
         }
 
-        stage('Build DEB using FPM') {
+        stage('Prepare Package Directory') {
             steps {
-                sh '''
-                    fpm -s dir -t deb -n hello-java -v 1.0.${BUILD_NUMBER} --prefix=/ -C package
+                bat '''
+                rmdir /s /q package 2>nul
+                mkdir package\\bin
+                copy hello.jar package\\bin\\hello.jar
+                '''
+            }
+        }
+
+        stage('Build Windows Package (ZIP)') {
+            steps {
+                bat '''
+                powershell Compress-Archive -Force package hello-java-%BUILD_NUMBER%.zip
                 '''
             }
         }
@@ -43,7 +41,7 @@ pipeline {
 
     post {
         success {
-            archiveArtifacts artifacts: '*.deb'
+            archiveArtifacts artifacts: '*.zip'
         }
     }
 }
